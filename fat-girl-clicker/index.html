@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>制服女子太らせゲーム</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body {
+      background-color: pink;
+      font-family: "Comic Sans MS", cursive, sans-serif;
+    }
+    #speechBubble {
+      position: absolute;
+      right: 10px;
+      top: 50px;
+      background: white;
+      border: 2px solid #ccc;
+      padding: 10px;
+      border-radius: 10px;
+      max-width: 200px;
+      display: none;
+    }
+    .image-container {
+      position: relative;
+      display: flex;
+      justify-content: center;
+    }
+    #girlImage {
+      max-width: 40%;
+      height: auto;
+      transition: opacity 0.3s ease;
+    }
+    #introOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(255, 192, 203, 0.9);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    #introOverlay img {
+      max-width: 70%;
+      max-height: 90%;
+      height: auto;
+    }
+    #explainButton {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 1001;
+    }
+  </style>
+</head>
+<body>
+  <h1 style="text-align:center; font-size: 2em; color: #ff69b4;">制服女子太らせゲーム</h1>
+  <button id="explainButton">説明</button>
+  <div id="introOverlay">
+    <img src="images/comic.png" alt="ゲーム説明" />
+  </div>
+  <div class="game-container">
+    <div class="image-container">
+      <img id="girlImage" src="images/girl_50.png" alt="Girl Image" />
+      <div id="speechBubble"></div>
+    </div>
+    <div class="stats">
+      <p>体重: <span id="weight">50.0</span> kg</p>
+      <p>ポイント: <span id="points">0</span></p>
+    </div>
+    <div class="main-area" style="display:flex;">
+      <div class="buttons"></div>
+      <div style="margin-left: 20px;">
+        <div class="shop">
+          <h2>ショップ</h2>
+          <ul id="shopItems"></ul>
+        </div>
+        <div class="achievements">
+          <h2>実績</h2>
+          <ul id="achievementList"></ul>
+          <div id="rewardImageContainer"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <audio id="sound1" src="sounds/eat1.mp3"></audio>
+  <audio id="sound2" src="sounds/eat2.mp3"></audio>
+  <audio id="sound3" src="sounds/eat3.mp3"></audio>
+
+  <script>
+    let weight = 50.0;
+    let points = 0;
+    let unlockedFoods = ['ハンバーガー'];
+    const weightDisplay = document.getElementById('weight');
+    const pointsDisplay = document.getElementById('points');
+    const girlImage = document.getElementById('girlImage');
+    const speechBubble = document.getElementById('speechBubble');
+    const buttonsContainer = document.querySelector('.buttons');
+
+    const foodList = [
+      { name: 'ハンバーガー', weight: 0.1, cost: 0 },
+      { name: 'ピザ', weight: 0.3, cost: 50 },
+      { name: 'ドーナツ', weight: 0.6, cost: 200 },
+      { name: 'ケーキ', weight: 1.0, cost: 500 },
+      { name: 'ホールケーキ', weight: 3.0, cost: 1000 }
+    ];
+
+    const soundIds = ['sound1', 'sound2', 'sound3'];
+
+    const achievementMilestones = [60, 100, 200, 300, 500, 1000];
+    const achievementTitles = {
+      60: 'ほんのり成長',
+      100: '食べ盛り',
+      200: 'ふっくら日和',
+      300: '重量級デビュー',
+      500: '夢のビッグサイズ',
+      1000: '究極の大満足'
+    };
+
+    let unlockedAchievements = [];
+
+    const imageThresholds = [
+      50, 60, 70, 85, 100, 120, 150, 175,
+      200, 230, 260, 300, 400, 500, 650, 800, 1000
+    ];
+
+    function updateImage() {
+      const closest = [...imageThresholds].reverse().find(t => weight >= t);
+      girlImage.style.opacity = 0;
+      setTimeout(() => {
+        girlImage.src = `images/girl_${closest}.png`;
+        girlImage.style.opacity = 1;
+      }, 150);
+    }
+
+    function showSpeech(text) {
+      speechBubble.textContent = text;
+      speechBubble.style.display = 'block';
+      clearTimeout(speechBubble.timeout);
+      speechBubble.timeout = setTimeout(() => {
+        speechBubble.style.display = 'none';
+      }, 1500);
+    }
+
+    function gainPoints(gainWeight) {
+      const gained = Math.round(gainWeight * 10);
+      points += gained;
+      pointsDisplay.textContent = points;
+    }
+
+    function eatFood(weightGain, name) {
+      weight += weightGain;
+      weight = Math.round(weight * 10) / 10;
+      weightDisplay.textContent = weight.toFixed(1);
+      updateImage();
+      gainPoints(weightGain);
+
+      const basePhrases = ['おいしい！', 'もっとたべたい！', `${name}最高！`, 'もぐもぐ♪', 'たまらない〜！'];
+      const heavyPhrases = ['ぶふぅ…♡', 'はぁはぁ…♡', 'お腹ぱんぱん…♡'];
+      const phrases = weight >= 300 ? basePhrases.concat(heavyPhrases) : basePhrases;
+      showSpeech(phrases[Math.floor(Math.random() * phrases.length)]);
+
+      const soundId = soundIds[Math.floor(Math.random() * soundIds.length)];
+      const audio = document.getElementById(soundId);
+      if (audio) {
+        audio.pause();
+        audio.currentTime = 0;
+        audio.play().catch(err => {
+          console.warn("Audio playback failed:", err);
+        });
+      }
+
+      checkAchievements();
+    }
+
+    function renderButtons() {
+      buttonsContainer.innerHTML = '';
+      for (const food of foodList) {
+        if (unlockedFoods.includes(food.name)) {
+          const btn = document.createElement('button');
+          btn.className = 'food-button';
+          btn.textContent = food.name;
+          btn.dataset.weight = food.weight;
+          btn.dataset.name = food.name;
+          btn.addEventListener('mousedown', startEating);
+          btn.addEventListener('touchstart', startEating);
+          btn.addEventListener('mouseup', stopEating);
+          btn.addEventListener('mouseleave', stopEating);
+          btn.addEventListener('touchend', stopEating);
+          btn.addEventListener('touchcancel', stopEating);
+          buttonsContainer.appendChild(btn);
+        }
+      }
+    }
+
+    let interval;
+    let isEating = false;
+    function startEating(e) {
+      e.preventDefault();
+      if (isEating) return;
+      isEating = true;
+      const target = e.target;
+      const { weight, name } = target.dataset;
+      eatFood(parseFloat(weight), name);
+      interval = setInterval(() => eatFood(parseFloat(weight), name), 200);
+    }
+
+    function stopEating() {
+      clearInterval(interval);
+      isEating = false;
+    }
+
+    function renderShop() {
+      const shop = document.getElementById('shopItems');
+      shop.innerHTML = '';
+      for (const food of foodList) {
+        if (!unlockedFoods.includes(food.name)) {
+          const item = document.createElement('li');
+          const btn = document.createElement('button');
+          btn.textContent = `${food.name}を${food.cost}ポイントで解放`;
+          btn.onclick = () => {
+            if (points >= food.cost) {
+              points -= food.cost;
+              pointsDisplay.textContent = points;
+              unlockedFoods.push(food.name);
+              renderButtons();
+              renderShop();
+              showSpeech(`${food.name}を解放したよ！`);
+            }
+          };
+          item.appendChild(btn);
+          shop.appendChild(item);
+        }
+      }
+    }
+
+    function checkAchievements() {
+      for (const milestone of achievementMilestones) {
+        if (weight >= milestone && !unlockedAchievements.includes(milestone)) {
+          unlockedAchievements.push(milestone);
+          const list = document.getElementById('achievementList');
+          const item = document.createElement('li');
+          item.textContent = `${milestone}kg達成！「${achievementTitles[milestone]}」`;
+          item.onclick = () => {
+            const img = document.createElement('img');
+            img.src = `images/reward_${milestone}.png`;
+            const rewardContainer = document.getElementById('rewardImageContainer');
+            rewardContainer.innerHTML = '';
+            rewardContainer.appendChild(img);
+          };
+          list.appendChild(item);
+          showSpeech(`実績解除！「${achievementTitles[milestone]}」`);
+        }
+      }
+    }
+
+    document.getElementById('explainButton').addEventListener('click', () => {
+      const overlay = document.getElementById('introOverlay');
+      overlay.style.display = 'flex';
+      overlay.addEventListener('click', () => {
+        overlay.style.display = 'none';
+      }, { once: true });
+    });
+
+    renderButtons();
+    renderShop();
+  </script>
+</body>
+</html>
